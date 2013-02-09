@@ -1,0 +1,35 @@
+function [numeric_classes class_key] = get_numeric_classes(classes)
+%get numeric numbers for classes
+%author: J. Brooks Zurn
+%inputs:
+%classes: the original (n x 1) cell array of string class names
+%outputs: 
+%numeric_classes: classes converted to a numeric list
+%class_key: a key that shows which numbers correspond to the old class
+%values
+
+all_classes = unique(classes);
+
+[n_classes dummy] = size(all_classes);
+numeric_key(:,1) = 1:n_classes;
+
+[n_instances dummy] = size(classes);
+numeric_classes = zeros(n_instances,1);
+
+for i=1:n_classes
+    class_key{i,1}=all_classes{i,1};
+    class_key{i,2}=numeric_key(i,1);
+end
+
+
+class1_logical = (strcmp(classes,class_key{1,1}));
+    
+numeric_classes(class1_logical,1) = class_key{1,1};
+
+for i=1:n_instances
+    
+    %find the current class in the key
+    
+    %insert the correct number in the numeric list
+    
+end

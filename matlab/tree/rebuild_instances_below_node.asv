@@ -1,0 +1,164 @@
+function tree = rebuild_instances_below_node(tree,here,ensure)
+%recursively rebuild from current node, as in add_instances_above_node
+%author: J. Brooks Zurn
+%inputs: tree: the current tree
+%here: the current node
+%ensure: 
+
+global n_variables 
+%global current_inst_tag
+
+global tree_class_counts
+global tree_class_counts_tags
+global tree_numeric_value_counts
+
+VERBOSE = 0;
+SUPER_VERBOSE=0;
+
+left = tree(here).left;
+right = tree(here).right;
+cutvar = tree(here).best_variable;
+
+
+if(cutvar>0)   
+    %first split values in cutvar
+    %[n_classes n_values] = size(tree(here).variables(cutvar).class_counts);
+    [n_classes n_values] = size(tree_class_counts(here).variables(cutvar).class_counts);
+    
+    %extract the instance tags from left and right
+    
+    %where is left and where is right?    
+    %[maxleft minright] = get_cutpoint_var_ix(tree(here).variables(cutvar).cutpoint{1,1},tree(here).variables(cutvar).numeric_value_counts);
+    [maxleft minright] = get_cutpoint_var_ix(tree(here).variables(cutvar).cutpoint{1,1},tree_numeric_value_counts(here).variables(cutvar).numeric_value_counts);
+    
+    if((minright > 1)&&(minright>maxleft))  %check it again
+       cutpoint = tree(here).variables(cutvar).cutpoint{1,1};
+     %maxleft = minright - 1;
+      
+     %get the distribution lists for the instances
+        [left_list right_list] = split_instance_tags(tree,here,cutvar,maxleft);
+        
+        %then for each variable
+        for i=1:(n_variables)
+            %[n_classes n_values] = size(tree(here).variables(i).class_counts);%for each value of the variable
+            [n_classes n_values] = size(tree_class_counts(here).variables(i).class_counts);%for each value of the variable
+
+            %get class counts for each list; don't assign until we remove
+            %empty columns 
+%             left_class_counts_original = get_class_counts(tree(here).variables(i).class_counts_tags,left_list);
+%             right_class_counts_original = get_class_counts(tree(here).variables(i).class_counts_tags,right_list);
+            left_class_counts_original = get_class_counts(tree_class_counts_tags(here).variables(i).class_counts_tags,left_list);
+            right_class_counts_original = get_class_counts(tree_class_counts_tags(here).variables(i).class_counts_tags,right_list);
+            
+            %get left and right class counts tags
+%             left_class_counts_tags_original = get_class_counts_tags(tree(here).variables(i).class_counts_tags,left_list);
+%             right_class_counts_tags_original = get_class_counts_tags(tree(here).variables(i).class_counts_tags,right_list);
+            left_class_counts_tags_original = get_class_counts_tags(tree_class_counts_tags(here).variables(i).class_counts_tags,left_list);
+            right_class_counts_tags_original = get_class_counts_tags(tree_class_counts_tags(here).variables(i).class_counts_tags,right_list);
+            
+            %get the new value (columns) for each list
+            left_logical = logical(left_class_counts_original);
+            right_logical = logical(right_class_counts_original);
+          
+            left_numerical=logical2mat(left_logical);
+            right_numerical=logical2mat(right_logical);
+            
+            left_val_cols = logical(sum(left_numerical,1));
+            right_val_cols = logical(sum(right_numerical,1));
+            
+
+            %send numeric values left and right
+%             tree(left).variables(i).numeric_value_counts = tree(here).variables(i).numeric_value_counts(left_val_cols);
+%             tree(right).variables(i).numeric_value_counts = tree(here).variables(i).numeric_value_counts(right_val_cols);
+            tree_numeric_value_counts(left).variables(i).numeric_value_counts = tree_numeric_value_counts(here).variables(i).numeric_value_counts(left_val_cols);
+            tree_numeric_value_counts(right).variables(i).numeric_value_counts = tree_numeric_value_counts(here).variables(i).numeric_value_counts(right_val_cols);
+            
+            %send class counts left and right
+%             tree(left).variables(i).class_counts = num2cell(left_class_counts_original(:,left_val_cols));
+%             tree(right).variables(i).class_counts = num2cell(right_class_counts_original(:,right_val_cols));
+            tree_class_counts(left).variables(i).class_counts = num2cell(left_class_counts_original(:,left_val_cols));
+            tree_class_counts(right).variables(i).class_counts = num2cell(right_class_counts_original(:,right_val_cols));
+
+            %send class counts tags left and right
+            left_ct = 0;
+            right_ct = 0;
+            clear class_counts_tags_left  %all the other variables are overwritten; these need to be cleared
+            clear class_counts_tags_right %because only individual elements are assigned
+            %for class_ct=1:n_classes
+            for val_ct=1:n_values
+                if(left_val_cols(1,val_ct))
+                    left_ct = left_ct + 1;
+                    for class_ct=1:n_classes
+                        class_counts_tags_left{class_ct,left_ct} = left_class_counts_tags_original{class_ct,val_ct};
+                    end
+                end
+                if(right_val_cols(1,val_ct))
+                    right_ct = right_ct + 1;
+                    for class_ct=1:n_classes
+                        class_counts_tags_right{class_ct,right_ct} = right_class_counts_tags_original{class_ct,val_ct};
+                    end
+                end
+            end
+            %end
+%             tree(left).variables(i).class_counts_tags = class_counts_tags_left;
+%             tree(right).variables(i).class_counts_tags = class_counts_tags_right;
+            tree_class_counts_tags(left).variables(i).class_counts_tags = class_counts_tags_left;
+            tree_class_counts_tags(right).variables(i).class_counts_tags = class_counts_tags_right;
+            
+            
+        end %cycling through n_variables
+ 
+        tree(here).flags.stale = 1;
+        
+        %update tree(left||right).class_counts
+        for i=1:n_variables
+%             left_class_counts(:,i) = sum(cell2mat(tree(left).variables(i).class_counts),2);
+%             right_class_counts(:,i) = sum(cell2mat(tree(right).variables(i).class_counts),2);
+            left_class_counts(:,i) = sum(cell2mat(tree_class_counts(left).variables(i).class_counts),2);
+            right_class_counts(:,i) = sum(cell2mat(tree_class_counts(right).variables(i).class_counts),2);
+        end
+        
+        for k=1:n_classes
+            tree(left).class_counts(k).count = max(left_class_counts(k,:));
+            tree(right).class_counts(k).count = max(right_class_counts(k,:));
+        end
+        
+        %update node class
+        tree = get_node_class(tree,left);
+        tree = get_node_class(tree,right);
+        
+        %now see if left or right nodes can be split
+        %recursively call this function and process it
+        
+        %%%recursively check left for purity
+        tree = split_node_if_impure(tree,left);
+        %%%recursively check right for purity
+        tree = split_node_if_impure(tree,right);
+        
+        %fprintf('/'); %display a signal to screen
+        
+        
+        
+        %see if right node can be split
+        
+        %if it can, recursively call this function and process it
+        %fprintf('\\'); %display a signal to screen 
+
+    else     %else best cutvar is leftmost value in list
+        if(VERBOSE) fprintf('(rebuild_instances_below_node) error: cutpoint is lowest value in index. terminating node\n'); end
+        %free_node_recursively(tree,here);
+        tree=free_children_recursively(tree,here);
+        tree=free_children_recursively(tree,here);
+    end 
+    
+else  %else no best cutvar
+    fprintf('(rebuild_instances_below_node) warning: no best cutvar, terminating node\n');
+    %free_node_recursively(tree,here);
+    tree=free_children_recursively(tree,here);
+end
+
+%if this function was called from ensure,send it back there??
+% if(ensure)
+%     %tree = ensure_best_variable(tree,here);
+% end
+

@@ -1,0 +1,45 @@
+function result = test_is_true(tree,here,inst)
+% * Apply test to instance, return result
+% * author: Paul Utgoff
+%modified by J. Brooks Zurn
+%tree: the input tree
+%here: the current tree node
+%inst: the test instance
+%output:
+%result: the LOGICAL result of the test (true or false)
+
+%global tree_class_counts
+%global tree_class_counts_tags
+global tree_numeric_value_counts
+
+%global current_inst_tag
+
+[num_insts n_variables] = size(inst);
+%here
+%tree(here).best_variable
+test_var = tree(here).best_variable;
+
+if(~test_var)
+    fprintf('error. Error in test_is_true, best_variable is NULL. here=%d\n',here);
+    result = 0;
+else
+    if(~array_is_empty(tree(here).variables(test_var).symbolic_value_counts))
+        fprintf('testing symbolic variable...\n');
+        result = 0;
+%     elseif(~array_is_empty(tree(here).variables(test_var).numeric_value_counts))
+    %elseif(~array_is_empty(tree_numeric_value_counts(here).variables(test_var).numeric_value_counts))    
+    elseif(~array_is_empty(tree_numeric_value_counts(here).variables(test_var).numeric_value_counts))        
+        if(iscell(tree(here).variables(test_var).cutpoint))
+            test_cutpoint = tree(here).variables(test_var).cutpoint{1,1};
+        else
+            test_cutpoint = tree(here).variables(test_var).cutpoint;
+        end
+        
+        result(1,1) = (inst(1,test_var).val < test_cutpoint);
+    else
+        result = 0;  %if inst value is missing, test result is set to FALSE
+    end
+end
+
+
+

@@ -1,0 +1,10 @@
+yes,no.
+
+pregnancies:continuous.
+glucose:continuous.
+dBP:continuous.
+thickness:continuous.
+insulin:continuous.
+BMI:continuous.
+pedigree:continuous.
+age:continuous.
